@@ -112,12 +112,13 @@ def detect_coa_base_path(product_category: str) -> str:
         return "/coas/beverages"
     if category.startswith("vapes"):
         return "/coas/vapes"
+    if category.startswith("concentrates"):
+        return "/coas/edibles"
 
     raise ValueError(
         f"Could not determine COA path from product_category '{product_category}'. "
-        "Expected something starting with Flower, Edibles, Beverages, or Vapes."
+        "Expected something starting with Flower, Edibles, Beverages, Vapes, or Concentrates."
     )
-
 def get_existing_coa_ref_indexes(tag_pairs: List[Tuple[str, str | None]]) -> List[int]:
     indexes = set()
 
