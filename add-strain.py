@@ -259,7 +259,7 @@ def build_product_rows(
         "product_category": eighth_category,
         "tags": "",
         "supply_price": supply_price,
-        "retail_price": "",
+        "retail_price": eighth_price,
         "brand_name": "Various",
         "supplier_name": "",
         "supplier_code": "",
