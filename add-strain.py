@@ -47,25 +47,28 @@ TIER_INFO = {
         "display_name": "Budget",
         "supply_price": "4.69",
         "eighth_price": "15",
+        "quarter_price": "25",
     },
     "inhouse": {
         "display_name": "In-House",
         "supply_price": "7.81",
         "eighth_price": "20",
+        "quarter_price": "35",
     },
     "organic": {
         "display_name": "Organic",
         "supply_price": "8.59",
         "eighth_price": "25",
+        "quarter_price": "45",
     },
     "topshelf": {
         "display_name": "Top Shelf",
         "supply_price": "9.77",
         "eighth_price": "25",
+        "quarter_price": "45",
     },
 }
 
-QUARTER_PRICE = "35"
 OUNCE_PRICE = "130"
 BASE_INVENTORY_EIGHTHS = "128"
 DEFAULT_TAX = "Default Tax"
@@ -213,6 +216,7 @@ def build_product_rows(
     tier_display = tier["display_name"]
     supply_price = tier["supply_price"]
     eighth_price = tier["eighth_price"]
+    quarter_price = tier["quarter_price"]
 
     slug = slugify(product_name)
     if not slug:
@@ -326,7 +330,7 @@ def build_product_rows(
         "product_category": quarter_category,
         "tags": "",
         "supply_price": supply_price,
-        "retail_price": QUARTER_PRICE,
+        "retail_price": quarter_price,
         "brand_name": "Various",
         "supplier_name": "",
         "supplier_code": "",
