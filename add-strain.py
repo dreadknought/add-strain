@@ -48,28 +48,38 @@ TIER_INFO = {
         "supply_price": "4.69",
         "eighth_price": "15",
         "quarter_price": "25",
+        "ounce_price": "90",
     },
     "inhouse": {
         "display_name": "In-House",
         "supply_price": "7.81",
         "eighth_price": "20",
         "quarter_price": "35",
+        "ounce_price": "130",
     },
     "organic": {
         "display_name": "Organic",
         "supply_price": "8.59",
         "eighth_price": "25",
         "quarter_price": "45",
+        "ounce_price": "150",
     },
     "topshelf": {
         "display_name": "Top Shelf",
         "supply_price": "9.77",
         "eighth_price": "25",
         "quarter_price": "45",
+        "ounce_price": "150",
+    },
+    "premium": {
+        "display_name": "Premium",
+        "supply_price": "9.77",
+        "eighth_price": "30",
+        "quarter_price": "50",
+        "ounce_price": "170",
     },
 }
 
-OUNCE_PRICE = "130"
 BASE_INVENTORY_EIGHTHS = "128"
 DEFAULT_TAX = "Default Tax"
 
@@ -217,6 +227,7 @@ def build_product_rows(
     supply_price = tier["supply_price"]
     eighth_price = tier["eighth_price"]
     quarter_price = tier["quarter_price"]
+    ounce_price = tier["ounce_price"]
 
     slug = slugify(product_name)
     if not slug:
@@ -249,7 +260,9 @@ def build_product_rows(
 
     rows: List[Dict[str, str]] = []
 
-    # 1) Base source row
+    # 1) Base source row.
+    # This is the inventory-tracked source item.
+    # Sellable composite rows below consume this item in 1, 2, or 8 eighth-unit quantities.
     row = blank_row(fieldnames)
     row.update({
         "id": "",
@@ -276,7 +289,7 @@ def build_product_rows(
     })
     rows.append(row)
 
-    # 2) Sellable 1/8 row
+    # 2) Sellable 1/8 row.
     row = blank_row(fieldnames)
     row.update({
         "id": "",
@@ -303,7 +316,8 @@ def build_product_rows(
     })
     rows.append(row)
 
-    # 3) 1/8 component row
+    # 3) 1/8 component row.
+    # One sellable 1/8 consumes one base 1/8 inventory unit.
     row = blank_row(fieldnames)
     row.update({
         "id": "",
@@ -316,7 +330,7 @@ def build_product_rows(
     })
     rows.append(row)
 
-    # 4) Sellable quarter row
+    # 4) Sellable quarter row.
     row = blank_row(fieldnames)
     row.update({
         "id": "",
@@ -343,7 +357,8 @@ def build_product_rows(
     })
     rows.append(row)
 
-    # 5) Quarter component row
+    # 5) Quarter component row.
+    # One sellable 1/4 consumes two base 1/8 inventory units.
     row = blank_row(fieldnames)
     row.update({
         "id": "",
@@ -356,7 +371,7 @@ def build_product_rows(
     })
     rows.append(row)
 
-    # 6) Sellable ounce row
+    # 6) Sellable ounce row.
     row = blank_row(fieldnames)
     row.update({
         "id": "",
@@ -370,7 +385,7 @@ def build_product_rows(
         "product_category": ounce_category,
         "tags": "",
         "supply_price": supply_price,
-        "retail_price": OUNCE_PRICE,
+        "retail_price": ounce_price,
         "brand_name": "Various",
         "supplier_name": "",
         "supplier_code": "",
@@ -383,7 +398,8 @@ def build_product_rows(
     })
     rows.append(row)
 
-    # 7) Ounce component row
+    # 7) Ounce component row.
+    # One sellable ounce consumes eight base 1/8 inventory units.
     row = blank_row(fieldnames)
     row.update({
         "id": "",
@@ -421,16 +437,38 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Add a flower product family to a Lightspeed CSV export."
     )
-    parser.add_argument("--name", required=True, help='Product name, e.g. "Permanent Chimera"')
-    parser.add_argument("--thc", required=True, type=validate_thc, help='THC content, e.g. "34.215"')
-    parser.add_argument("--coa-file", required=True, help="Exact COA file name")
+    parser.add_argument(
+        "--name",
+        required=True,
+        help='Product name, e.g. "Permanent Chimera"',
+    )
+    parser.add_argument(
+        "--thc",
+        required=True,
+        type=validate_thc,
+        help='THC content, e.g. "34.215"',
+    )
+    parser.add_argument(
+        "--coa-file",
+        required=True,
+        help="Exact COA file name",
+    )
     parser.add_argument(
         "--lot",
         default="",
         help="Optional explicit COA lot. If omitted, the script tries to extract it from the COA filename.",
     )
-    parser.add_argument("--tier", required=True, type=validate_tier, help="budget, inhouse, organic, or topshelf")
-    parser.add_argument("--source-csv", required=True, help="Path to source CSV")
+    parser.add_argument(
+        "--tier",
+        required=True,
+        type=validate_tier,
+        help="budget, inhouse, organic, topshelf, or premium",
+    )
+    parser.add_argument(
+        "--source-csv",
+        required=True,
+        help="Path to source CSV",
+    )
     parser.add_argument(
         "--output-csv",
         help="Optional output CSV path. If omitted, source CSV is overwritten.",
