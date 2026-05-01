@@ -119,6 +119,8 @@ def detect_coa_base_path(product_category: str) -> str:
         f"Could not determine COA path from product_category '{product_category}'. "
         "Expected something starting with Flower, Edibles, Beverages, Vapes, or Concentrates."
     )
+
+
 def get_existing_coa_ref_indexes(tag_pairs: List[Tuple[str, str | None]]) -> List[int]:
     indexes = set()
 
@@ -200,6 +202,52 @@ def find_matching_rows(rows: List[Dict[str, str]], sku: str) -> List[Dict[str, s
     return [row for row in rows if (row.get("sku", "") or "").strip() == target]
 
 
+def is_sellable_product_row(row: Dict[str, str]) -> bool:
+    """
+    Prefer the real product row over composite wiring rows.
+
+    In this CSV shape, the sellable row usually has product data such as a handle,
+    product category, description, tags, prices, and inventory flags. The composite
+    component row often shares the same SKU but has blank product fields and instead
+    carries composite_name/composite_sku/composite_quantity.
+    """
+    meaningful_product_fields = [
+        "handle",
+        "product_category",
+        "description",
+        "tags",
+        "supply_price",
+        "retail_price",
+        "active",
+        "track_inventory",
+    ]
+    return any((row.get(field, "") or "").strip() for field in meaningful_product_fields)
+
+
+def choose_target_row(matches: List[Dict[str, str]], sku: str) -> Dict[str, str]:
+    if not matches:
+        raise ValueError(f'No row found with sku "{sku}".')
+
+    if len(matches) == 1:
+        return matches[0]
+
+    sellable_matches = [row for row in matches if is_sellable_product_row(row)]
+
+    if len(sellable_matches) == 1:
+        return sellable_matches[0]
+
+    if len(sellable_matches) > 1:
+        raise ValueError(
+            f'Found multiple sellable-looking rows with sku "{sku}". '
+            "Refusing to guess which row to update."
+        )
+
+    raise ValueError(
+        f'Found multiple rows with sku "{sku}", but none looked like a sellable product row. '
+        "Refusing to guess which row to update."
+    )
+
+
 def main() -> None:
     args = parse_args()
 
@@ -220,17 +268,8 @@ def main() -> None:
         raise ValueError("CSV is missing required column: product_category")
 
     matches = find_matching_rows(rows, sku)
+    row = choose_target_row(matches, sku)
 
-    if not matches:
-        raise ValueError(f'No row found with sku "{sku}".')
-
-    if len(matches) > 1:
-        raise ValueError(
-            f'Found multiple rows with sku "{sku}". '
-            "This script expects exactly one matching row."
-        )
-
-    row = matches[0]
     existing_tags = row.get("tags", "") or ""
     product_category = row.get("product_category", "") or ""
 
