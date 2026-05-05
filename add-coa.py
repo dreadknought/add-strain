@@ -10,6 +10,17 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 
+# Columns that can update Lightspeed stock tracking or on-hand/reorder values.
+# Keep these out of generated import files unless you intentionally want to
+# change inventory in Lightspeed.
+INVENTORY_COLUMNS = {
+    "track_inventory",
+    "inventory_Main_Outlet",
+    "reorder_point_Main_Outlet",
+    "restock_level_Main_Outlet",
+}
+
+
 def encode_spaces(value: str) -> str:
     return value.replace(" ", "%20")
 
@@ -64,9 +75,21 @@ def read_csv(path: Path) -> Tuple[List[Dict[str, str]], List[str]]:
     return rows, fieldnames
 
 
+def remove_inventory_columns(fieldnames: List[str]) -> List[str]:
+    """Return CSV headers safe for a Lightspeed product import.
+
+    Lightspeed can update stock values when inventory columns are present in an
+    import file. This strips those columns from every output CSV written by this
+    script, while leaving non-inventory fields like outlet tax intact.
+    """
+    return [field for field in fieldnames if field not in INVENTORY_COLUMNS]
+
+
 def write_csv(path: Path, rows: List[Dict[str, str]], fieldnames: List[str]) -> None:
+    output_fieldnames = remove_inventory_columns(fieldnames)
+
     with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer = csv.DictWriter(f, fieldnames=output_fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -288,6 +311,7 @@ def main() -> None:
     print(f"SKU: {sku}")
     print(f"Lot added: {lot}")
     print(f"COA file added: {coa_file}")
+    print(f"Inventory columns removed from output: {', '.join(sorted(INVENTORY_COLUMNS))}")
     print(f"Output CSV: {output_csv}")
 
 
