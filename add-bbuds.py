@@ -175,17 +175,22 @@ def build_tags(thc: str, coa_filename: str, coa_lot: str = "") -> str:
         "netwt=14g",
     ]
 
-    if thc.strip():
-        tags.append(f"thc={thc.strip()}")
+    normalized_thc = thc.strip().removesuffix("%").strip()
 
     if coa_filename.strip():
         encoded_file = encode_spaces(coa_filename.strip())
         tags.append(f"coa_ref_0_file={encoded_file}")
         tags.append(f"coa_ref_0_url=/coas/flower/{encoded_file}")
+        if normalized_thc:
+            tags.append(f"coa_ref_0_thc={normalized_thc}")
 
         lot = coa_lot.strip() if coa_lot.strip() else extract_lot_from_filename(coa_filename.strip())
         if lot:
             tags.append(f"coa_ref_0_lot={lot}")
+    elif normalized_thc:
+        # Keep a fallback for data entry without a COA file. Normal COA-backed
+        # rows should prefer coa_ref_N_thc so the THC maps to a specific COA.
+        tags.append(f"thc={normalized_thc}")
 
     return ";".join(tags)
 

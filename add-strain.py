@@ -159,9 +159,9 @@ def build_sku_family(product_name: str, existing_skus: Set[str]) -> Dict[str, st
 def build_tags(product_name: str, thc: str, coa_filename: str, coa_lot: str = "") -> str:
     encoded_file = encode_spaces(coa_filename)
     tags = [
-        f"thc={thc}",
         f"coa_ref_0_file={encoded_file}",
         f"coa_ref_0_url=/coas/flower/{encoded_file}",
+        f"coa_ref_0_thc={thc.strip().removesuffix('%').strip()}",
         "usecoa=1",
         "sellable_composite=1",
         "netwt=3.5g",
