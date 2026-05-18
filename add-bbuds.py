@@ -56,7 +56,7 @@ BBUD_SIZE_INFO = {
         "sku_suffix": "HO",
         "name_suffix": "(1/2 oz)",
         "category": "Flower / B-Buds / Half Ounce",
-        "retail_price": "35",
+        "retail_price": "40",
         "composite_quantity": "1",
     },
     "ounce": {
@@ -65,7 +65,7 @@ BBUD_SIZE_INFO = {
         "sku_suffix": "OZ",
         "name_suffix": "(1 oz)",
         "category": "Flower / B-Buds / Ounce",
-        "retail_price": "70",
+        "retail_price": "80",
         "composite_quantity": "2",
     },
     "quarter_pound": {
