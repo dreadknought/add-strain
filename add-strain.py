@@ -52,7 +52,7 @@ TIER_INFO = {
     "budget": {
         "display_name": "Budget",
         "supply_price": "4.69",
-        "eighth_price": "15",
+        "eighth_price": "14.95",
         "quarter_price": "25",
         "ounce_price": "90",
     },
