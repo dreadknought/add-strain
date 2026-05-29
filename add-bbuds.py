@@ -36,8 +36,14 @@ REQUIRED_COLUMNS = [
     "supplier_name",
     "supplier_code",
     "active",
-    "track_inventory",
     "outlet_tax_Main_Outlet",
+]
+
+
+# These columns are useful when the Lightspeed export includes them, but some
+# exports do not. The script should not fail just because they are missing.
+OPTIONAL_COLUMNS = [
+    "track_inventory",
     "inventory_Main_Outlet",
     "reorder_point_Main_Outlet",
     "restock_level_Main_Outlet",
@@ -97,7 +103,7 @@ DEFAULT_PRODUCT_LINE = "B-Buds"
 def slugify(value: str) -> str:
     value = value.strip().lower()
     value = value.replace("&", " and ")
-    value = re.sub(r"[’']", "", value)
+    value = re.sub(r"[ΓÇÖ']", "", value)
     value = re.sub(r"[^a-z0-9]+", "-", value)
     value = re.sub(r"-{2,}", "-", value)
     return value.strip("-")
@@ -239,6 +245,18 @@ def blank_row(fieldnames: List[str]) -> Dict[str, str]:
     return {field: "" for field in fieldnames}
 
 
+def update_existing_columns(row: Dict[str, str], values: Dict[str, str]) -> None:
+    """
+    Update only the columns that actually exist in the source CSV.
+
+    This lets the script work with Lightspeed exports that do not include
+    inventory columns such as track_inventory or inventory_Main_Outlet.
+    """
+    for column, value in values.items():
+        if column in row:
+            row[column] = value
+
+
 def parse_optional_decimal(value: str, field_name: str) -> Decimal | None:
     cleaned = value.strip()
     if not cleaned:
@@ -289,7 +307,7 @@ def build_product_rows(
     #   1/2 lb = 16 half-ounce units
     #   1/4 lb = 8 half-ounce units
     row = blank_row(fieldnames)
-    row.update({
+    update_existing_columns(row, {
         "id": "",
         "handle": base_handle,
         "sku": skus["base"],
@@ -331,7 +349,7 @@ def build_product_rows(
 
         # Sellable product row.
         row = blank_row(fieldnames)
-        row.update({
+        update_existing_columns(row, {
             "id": "",
             "handle": sellable_handle,
             "sku": skus[size_key],
@@ -359,7 +377,7 @@ def build_product_rows(
         # Component row.
         # This makes the sellable product consume from the base B-buds inventory item.
         row = blank_row(fieldnames)
-        row.update({
+        update_existing_columns(row, {
             "id": "",
             "handle": "",
             "sku": skus[size_key],
@@ -495,6 +513,13 @@ def main() -> None:
     print("Added B-buds product rows successfully.")
     print(f"Product: {product_name} B-Buds")
     print(f"Inventory half-ounce units: {inventory_half_ounces}")
+
+    if "inventory_Main_Outlet" not in fieldnames:
+        print("Warning: inventory_Main_Outlet column was missing, so inventory count was not written.")
+
+    if "track_inventory" not in fieldnames:
+        print("Warning: track_inventory column was missing, so inventory tracking flags were not written.")
+
     print(f"Equivalent pounds: {Decimal(inventory_half_ounces) / Decimal('32')}")
     print(f"THC: {thc if thc else '(not set)'}")
     print(f"COA file: {coa_filename if coa_filename else '(not set)'}")
