@@ -86,6 +86,23 @@ TIER_INFO = {
     },
 }
 
+PROMO_TAGS = {
+    "eighth": {
+        "budget": "promo_eighth_budget",
+        "inhouse": "promo_eighth_inhouse",
+        "organic": "promo_eighth_organic",
+        "topshelf": "promo_eighth_topshelf",
+        "premium": "promo_eighth_premium",
+    },
+    "quarter": {
+        "budget": "promo_quarter_budget",
+        "inhouse": "promo_quarter_inhouse",
+        "organic": "promo_quarter_organic",
+        "topshelf": "promo_quarter_topshelf",
+        "premium": "promo_quarter_premium",
+    },
+}
+
 BASE_INVENTORY_EIGHTHS = "128"
 DEFAULT_TAX = "Default Tax"
 
@@ -154,6 +171,27 @@ def build_sku_family(product_name: str, existing_skus: Set[str]) -> Dict[str, st
         "quarter": make_unique_sku(f"FL{sell_seed}Q", existing_skus),
         "ounce": make_unique_sku(f"FL{sell_seed}OZ", existing_skus),
     }
+
+
+def combine_tags(*tag_groups: str) -> str:
+    tags: List[str] = []
+    seen: Set[str] = set()
+
+    for group in tag_groups:
+        for tag in (group or "").split(";"):
+            tag = tag.strip()
+            if tag and tag not in seen:
+                tags.append(tag)
+                seen.add(tag)
+
+    return ";".join(tags)
+
+
+def promo_tag(weight_key: str, tier_key: str) -> str:
+    try:
+        return PROMO_TAGS[weight_key][tier_key]
+    except KeyError as exc:
+        raise ValueError(f"No promo tag configured for {weight_key=} and {tier_key=}") from exc
 
 
 def build_tags(product_name: str, thc: str, coa_filename: str, coa_lot: str = "") -> str:
@@ -269,12 +307,16 @@ def build_product_rows(
     eighth_category = f"Flower / Eighth / {tier_display}"
     quarter_category = f"Flower / Quarter / {tier_display}"
     ounce_category = f"Flower / Ounce / {tier_display}"
-    tags = build_tags(
-        product_name=product_name,
-        thc=thc,
-        coa_filename=coa_filename,
-        coa_lot=coa_lot,
+    eighth_tags = combine_tags(
+        build_tags(
+            product_name=product_name,
+            thc=thc,
+            coa_filename=coa_filename,
+            coa_lot=coa_lot,
+        ),
+        promo_tag("eighth", tier_key),
     )
+    quarter_tags = promo_tag("quarter", tier_key)
 
     rows: List[Dict[str, str]] = []
 
@@ -319,7 +361,7 @@ def build_product_rows(
         "name": eighth_name,
         "description": description,
         "product_category": eighth_category,
-        "tags": tags,
+        "tags": eighth_tags,
         "supply_price": supply_price,
         "retail_price": eighth_price,
         "brand_name": "Various",
@@ -360,7 +402,7 @@ def build_product_rows(
         "name": quarter_name,
         "description": description,
         "product_category": quarter_category,
-        "tags": "",
+        "tags": quarter_tags,
         "supply_price": supply_price,
         "retail_price": quarter_price,
         "brand_name": "Various",
