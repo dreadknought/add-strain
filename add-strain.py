@@ -46,6 +46,9 @@ INVENTORY_COLUMNS = {
     "inventory_Main_Outlet",
     "reorder_point_Main_Outlet",
     "restock_level_Main_Outlet",
+    "inventory_Market_Square",
+    "reorder_point_Market_Square",
+    "restock_level_Market_Square",
 }
 
 TIER_INFO = {
