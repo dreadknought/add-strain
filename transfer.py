@@ -194,7 +194,6 @@ def print_results(results, show_insufficient=False):
         print("No eligible Market Square transfers found.")
         return
 
-    sku_width = max(len(item["sku"]) for item in results)
     name_width = max(len(item["name"]) for item in results)
     qty_width = max(len(format_qty(item["transfer_qty"])) for item in results)
 
@@ -203,25 +202,16 @@ def print_results(results, show_insufficient=False):
     else:
         status_width = 0
 
-    # Add extra room so the dot leaders are easy to follow visually.
-    sku_to_name_width = sku_width + 6
     name_to_qty_width = name_width + qty_width + 8
 
     for item in results:
-        sku = item["sku"]
         name = item["name"]
         qty = format_qty(item["transfer_qty"])
 
-        left_section = make_dot_leader(
-            left_text=sku,
-            right_text=name,
-            total_width=sku_to_name_width + name_width,
-        )
-
         full_line = make_dot_leader(
-            left_text=left_section,
+            left_text=name,
             right_text=qty,
-            total_width=sku_to_name_width + name_to_qty_width + name_width,
+            total_width=name_to_qty_width,
         )
 
         if show_insufficient:
@@ -233,7 +223,6 @@ def print_results(results, show_insufficient=False):
             )
 
         print(full_line)
-
 
 def main():
     parser = argparse.ArgumentParser(
