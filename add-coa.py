@@ -8,6 +8,7 @@ import csv
 import re
 from pathlib import Path
 from typing import Dict, List, Tuple
+from urllib.parse import quote
 
 
 # Columns that can update Lightspeed stock tracking or on-hand/reorder values.
@@ -24,8 +25,9 @@ INVENTORY_COLUMNS = {
 }
 
 
-def encode_spaces(value: str) -> str:
-    return value.replace(" ", "%20")
+def encode_url_path_segment(value: str) -> str:
+    """Percent-encode a filename for use as one URL path segment."""
+    return quote(value, safe="")
 
 
 def parse_args() -> argparse.Namespace:
@@ -229,7 +231,7 @@ def append_coa_tags(
 ) -> str:
     tag_pairs = parse_tag_pairs(existing_tags)
 
-    encoded_file = encode_spaces(coa_filename)
+    encoded_file = encode_url_path_segment(coa_filename)
     coa_base = detect_coa_base_path(product_category, sku=sku)
     coa_url = f"{coa_base}/{encoded_file}"
 

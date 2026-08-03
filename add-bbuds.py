@@ -9,6 +9,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Dict, List, Set
+from urllib.parse import quote
 
 
 REQUIRED_COLUMNS = [
@@ -112,8 +113,9 @@ def slugify(value: str) -> str:
     return value.strip("-")
 
 
-def encode_spaces(value: str) -> str:
-    return value.replace(" ", "%20")
+def encode_url_path_segment(value: str) -> str:
+    """Percent-encode a filename for use as one URL path segment."""
+    return quote(value, safe="")
 
 
 def extract_lot_from_filename(filename: str) -> str:
@@ -187,7 +189,7 @@ def build_tags(thc: str, coa_filename: str, coa_lot: str = "") -> str:
     normalized_thc = thc.strip().removesuffix("%").strip()
 
     if coa_filename.strip():
-        encoded_file = encode_spaces(coa_filename.strip())
+        encoded_file = encode_url_path_segment(coa_filename.strip())
         tags.append(f"coa_ref_0_file={encoded_file}")
         tags.append(f"coa_ref_0_url=/coas/flower/{encoded_file}")
         if normalized_thc:

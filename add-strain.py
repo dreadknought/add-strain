@@ -8,6 +8,7 @@ import csv
 import re
 from pathlib import Path
 from typing import Dict, List, Set
+from urllib.parse import quote
 
 
 REQUIRED_COLUMNS = [
@@ -119,8 +120,9 @@ def slugify(value: str) -> str:
     return value.strip("-")
 
 
-def encode_spaces(value: str) -> str:
-    return value.replace(" ", "%20")
+def encode_url_path_segment(value: str) -> str:
+    """Percent-encode a filename for use as one URL path segment."""
+    return quote(value, safe="")
 
 
 def extract_lot_from_filename(filename: str) -> str:
@@ -198,7 +200,7 @@ def promo_tag(weight_key: str, tier_key: str) -> str:
 
 
 def build_tags(product_name: str, thc: str, coa_filename: str, coa_lot: str = "") -> str:
-    encoded_file = encode_spaces(coa_filename)
+    encoded_file = encode_url_path_segment(coa_filename)
     tags = [
         f"coa_ref_0_file={encoded_file}",
         f"coa_ref_0_url=/coas/flower/{encoded_file}",
