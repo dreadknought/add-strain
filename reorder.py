@@ -11,16 +11,15 @@ LOCATIONS = [
         "label": "Main Outlet",
         "inventory_col": "inventory_Main_Outlet",
         "reorder_point_col": "reorder_point_Main_Outlet",
-        "reorder_qty_col": "restock_level_Main_Outlet",
+        "reorder_qty_col": "reorder_quantity_Main_Outlet",
     },
     {
         "label": "Market Square",
         "inventory_col": "inventory_Market_Square",
         "reorder_point_col": "reorder_point_Market_Square",
-        "reorder_qty_col": "restock_level_Market_Square",
+        "reorder_qty_col": "reorder_quantity_Market_Square",
     },
 ]
-
 
 def parse_number(value, default=0.0):
     if value is None:

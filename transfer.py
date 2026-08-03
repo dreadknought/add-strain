@@ -10,16 +10,15 @@ MAIN = {
     "label": "Main Outlet",
     "inventory_col": "inventory_Main_Outlet",
     "reorder_point_col": "reorder_point_Main_Outlet",
-    "reorder_qty_col": "restock_level_Main_Outlet",
+    "reorder_qty_col": "reorder_quantity_Main_Outlet",
 }
 
 MARKET = {
     "label": "Market Square",
     "inventory_col": "inventory_Market_Square",
     "reorder_point_col": "reorder_point_Market_Square",
-    "reorder_qty_col": "restock_level_Market_Square",
+    "reorder_qty_col": "reorder_quantity_Market_Square",
 }
-
 
 def parse_number(value, default=0.0):
     if value is None:
@@ -195,35 +194,31 @@ def print_results(results, show_insufficient=False):
         return
 
     name_width = max(len(item["name"]) for item in results)
-    qty_width = max(len(format_qty(item["transfer_qty"])) for item in results)
-
-    if show_insufficient:
-        status_width = max(len("OK"), len("INSUFFICIENT"))
-    else:
-        status_width = 0
-
-    name_to_qty_width = name_width + qty_width + 8
 
     for item in results:
         name = item["name"]
-        qty = format_qty(item["transfer_qty"])
+        transfer_qty = format_qty(item["transfer_qty"])
+        main_stock = format_qty(item["main_inventory"])
+        market_stock = format_qty(item["market_inventory"])
 
-        full_line = make_dot_leader(
-            left_text=name,
-            right_text=qty,
-            total_width=name_to_qty_width,
+        details = (
+            f"transfer {transfer_qty} | "
+            f"Main: {main_stock} | "
+            f"Market Square: {market_stock}"
         )
 
         if show_insufficient:
             status = "OK" if item["can_transfer"] else "INSUFFICIENT"
-            full_line = make_dot_leader(
-                left_text=full_line,
-                right_text=status,
-                total_width=len(full_line) + status_width + 6,
-            )
+            details += f" | {status}"
+
+        full_line = make_dot_leader(
+            left_text=name,
+            right_text=details,
+            total_width=name_width + len(details) + 8,
+        )
 
         print(full_line)
-
+        
 def main():
     parser = argparse.ArgumentParser(
         description=(
