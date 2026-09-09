@@ -55,35 +55,35 @@ INVENTORY_COLUMNS = {
 TIER_INFO = {
     "budget": {
         "display_name": "Budget",
-        "supply_price": "4.69",
+        "supply_price": "6.19",
         "eighth_price": "14.95",
         "quarter_price": "25",
         "ounce_price": "90",
     },
     "inhouse": {
         "display_name": "In-House",
-        "supply_price": "7.81",
+        "supply_price": "9.32",
         "eighth_price": "20",
         "quarter_price": "35",
         "ounce_price": "130",
     },
     "organic": {
         "display_name": "Organic",
-        "supply_price": "8.59",
+        "supply_price": "10.10",
         "eighth_price": "25",
         "quarter_price": "45",
         "ounce_price": "150",
     },
     "topshelf": {
         "display_name": "Top Shelf",
-        "supply_price": "9.77",
+        "supply_price": "11.27",
         "eighth_price": "25",
         "quarter_price": "45",
         "ounce_price": "150",
     },
     "premium": {
         "display_name": "Premium",
-        "supply_price": "9.77",
+        "supply_price": "11.67",
         "eighth_price": "30",
         "quarter_price": "50",
         "ounce_price": "170",
@@ -107,7 +107,6 @@ PROMO_TAGS = {
     },
 }
 
-BASE_INVENTORY_EIGHTHS = "128"
 DEFAULT_TAX = "Default Tax"
 
 
@@ -348,7 +347,7 @@ def build_product_rows(
         "active": "1",
         "track_inventory": "1",
         "outlet_tax_Main_Outlet": DEFAULT_TAX,
-        "inventory_Main_Outlet": BASE_INVENTORY_EIGHTHS,
+        "inventory_Main_Outlet": "",
         "reorder_point_Main_Outlet": "",
         "restock_level_Main_Outlet": "",
     })
