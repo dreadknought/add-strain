@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import re
+from decimal import Decimal
 from pathlib import Path
 from typing import Dict, List, Set
 from urllib.parse import quote
@@ -55,37 +56,42 @@ INVENTORY_COLUMNS = {
 TIER_INFO = {
     "budget": {
         "display_name": "Budget",
-        "supply_price": "6.19",
-        "eighth_price": "14.95",
-        "quarter_price": "25",
+        "eighth_supply_price": "5.69",
+        "quarter_supply_price": "10.38",
+        "eighth_price": "18.69",
+        "quarter_price": "28.04",
         "ounce_price": "90",
     },
     "inhouse": {
         "display_name": "In-House",
-        "supply_price": "9.32",
-        "eighth_price": "20",
-        "quarter_price": "35",
+        "eighth_supply_price": "8.82",
+        "quarter_supply_price": "16.63",
+        "eighth_price": "23.36",
+        "quarter_price": "37.38",
         "ounce_price": "130",
     },
     "organic": {
         "display_name": "Organic",
-        "supply_price": "10.10",
-        "eighth_price": "25",
-        "quarter_price": "45",
+        "eighth_supply_price": "9.60",
+        "quarter_supply_price": "18.19",
+        "eighth_price": "28.04",
+        "quarter_price": "46.73",
         "ounce_price": "150",
     },
     "topshelf": {
         "display_name": "Top Shelf",
-        "supply_price": "11.27",
-        "eighth_price": "25",
-        "quarter_price": "45",
+        "eighth_supply_price": "10.38",
+        "quarter_supply_price": "19.75",
+        "eighth_price": "28.04",
+        "quarter_price": "46.73",
         "ounce_price": "150",
     },
     "premium": {
         "display_name": "Premium",
-        "supply_price": "11.67",
-        "eighth_price": "30",
-        "quarter_price": "50",
+        "eighth_supply_price": "11.55",
+        "quarter_supply_price": "22.10",
+        "eighth_price": "32.71",
+        "quarter_price": "56.07",
         "ounce_price": "170",
     },
 }
@@ -113,7 +119,7 @@ DEFAULT_TAX = "Default Tax"
 def slugify(value: str) -> str:
     value = value.strip().lower()
     value = value.replace("&", " and ")
-    value = re.sub(r"[’']", "", value)
+    value = re.sub(r"[╬ô├ç├û']", "", value)
     value = re.sub(r"[^a-z0-9]+", "-", value)
     value = re.sub(r"-{2,}", "-", value)
     return value.strip("-")
@@ -284,7 +290,9 @@ def build_product_rows(
 ) -> List[Dict[str, str]]:
     tier = TIER_INFO[tier_key]
     tier_display = tier["display_name"]
-    supply_price = tier["supply_price"]
+    eighth_supply_price = tier["eighth_supply_price"]
+    quarter_supply_price = tier["quarter_supply_price"]
+    ounce_supply_price = f"{Decimal(quarter_supply_price) * 4:.2f}"
     eighth_price = tier["eighth_price"]
     quarter_price = tier["quarter_price"]
     ounce_price = tier["ounce_price"]
@@ -302,7 +310,7 @@ def build_product_rows(
 
     skus = build_sku_family(product_name, existing_skus)
 
-    base_name = f"BASE – BASE – {product_name} (1/8)"
+    base_name = f"BASE ╬ô├ç├┤ BASE ╬ô├ç├┤ {product_name} (1/8)"
     eighth_name = f"{product_name} (1/8 oz)"
     quarter_name = f"{product_name} (1/4 oz)"
     ounce_name = f"{product_name} (1 oz)"
@@ -339,7 +347,7 @@ def build_product_rows(
         "description": description,
         "product_category": eighth_category,
         "tags": "",
-        "supply_price": supply_price,
+        "supply_price": eighth_supply_price,
         "retail_price": eighth_price,
         "brand_name": "Various",
         "supplier_name": "",
@@ -366,7 +374,7 @@ def build_product_rows(
         "description": description,
         "product_category": eighth_category,
         "tags": eighth_tags,
-        "supply_price": supply_price,
+        "supply_price": eighth_supply_price,
         "retail_price": eighth_price,
         "brand_name": "Various",
         "supplier_name": "",
@@ -407,7 +415,7 @@ def build_product_rows(
         "description": description,
         "product_category": quarter_category,
         "tags": quarter_tags,
-        "supply_price": supply_price,
+        "supply_price": quarter_supply_price,
         "retail_price": quarter_price,
         "brand_name": "Various",
         "supplier_name": "",
@@ -448,7 +456,7 @@ def build_product_rows(
         "description": description,
         "product_category": ounce_category,
         "tags": "",
-        "supply_price": supply_price,
+        "supply_price": ounce_supply_price,
         "retail_price": ounce_price,
         "brand_name": "Various",
         "supplier_name": "",
