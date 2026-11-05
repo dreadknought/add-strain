@@ -38,20 +38,18 @@ REQUIRED_COLUMNS = [
     "supplier_code",
     "active",
     "outlet_tax_Main_Outlet",
+    "track_inventory",
 ]
 
-# Columns that can update Lightspeed stock tracking or on-hand/reorder values.
-# Keep these out of generated import files unless you intentionally want to
-# change inventory in Lightspeed.
-INVENTORY_COLUMNS = {
-    "track_inventory",
-    "inventory_Main_Outlet",
-    "reorder_point_Main_Outlet",
-    "restock_level_Main_Outlet",
-    "inventory_Market_Square",
-    "reorder_point_Market_Square",
-    "restock_level_Market_Square",
-}
+# Inventory counts and thresholds are deliberately excluded from import output.
+# track_inventory is a product setting and MUST remain included.
+def is_stock_column(field: str) -> bool:
+    return field.startswith((
+        "inventory_", "reorder_point_", "restock_level_",
+        "reorder_quantity_", "min_quantity_", "max_quantity_",
+        "items_on_special_order_",
+    ))
+
 
 TIER_INFO = {
     "budget": {
@@ -119,7 +117,7 @@ DEFAULT_TAX = "Default Tax"
 def slugify(value: str) -> str:
     value = value.strip().lower()
     value = value.replace("&", " and ")
-    value = re.sub(r"[╬ô├ç├û']", "", value)
+    value = re.sub(r"[‘’“”']", "", value)
     value = re.sub(r"[^a-z0-9]+", "-", value)
     value = re.sub(r"-{2,}", "-", value)
     return value.strip("-")
@@ -248,7 +246,7 @@ def remove_inventory_columns(fieldnames: List[str]) -> List[str]:
     import file. This strips those columns from every output CSV written by this
     script, while leaving non-inventory fields like outlet tax intact.
     """
-    return [field for field in fieldnames if field not in INVENTORY_COLUMNS]
+    return [field for field in fieldnames if not is_stock_column(field)]
 
 
 def write_csv(path: Path, rows: List[Dict[str, str]], fieldnames: List[str]) -> None:
@@ -288,15 +286,13 @@ def build_product_rows(
     existing_handles: Set[str],
     existing_skus: Set[str],
 ) -> List[Dict[str, str]]:
+    """Create one base and three sellable composites in ONE import.
+
+    Each sellable product carries its composite_sku and quantity on its
+    own row: the same shape used by our successful Lightspeed bulk import.
+    """
     tier = TIER_INFO[tier_key]
     tier_display = tier["display_name"]
-    eighth_supply_price = tier["eighth_supply_price"]
-    quarter_supply_price = tier["quarter_supply_price"]
-    ounce_supply_price = f"{Decimal(quarter_supply_price) * 4:.2f}"
-    eighth_price = tier["eighth_price"]
-    quarter_price = tier["quarter_price"]
-    ounce_price = tier["ounce_price"]
-
     slug = slugify(product_name)
     if not slug:
         raise ValueError("Could not generate a valid handle from the product name.")
@@ -307,183 +303,56 @@ def build_product_rows(
         "quarter": make_unique_handle(f"{slug}-quarter", existing_handles),
         "ounce": make_unique_handle(f"{slug}-ounce", existing_handles),
     }
-
     skus = build_sku_family(product_name, existing_skus)
-
-    base_name = f"BASE ╬ô├ç├┤ BASE ╬ô├ç├┤ {product_name} (1/8)"
-    eighth_name = f"{product_name} (1/8 oz)"
-    quarter_name = f"{product_name} (1/4 oz)"
-    ounce_name = f"{product_name} (1 oz)"
-
+    base_name = f"BASE – {product_name} (1/8 oz)"
     description = f"<p>{product_name} Flower</p>"
-    eighth_category = f"Flower / Eighth / {tier_display}"
-    quarter_category = f"Flower / Quarter / {tier_display}"
-    ounce_category = f"Flower / Ounce / {tier_display}"
     eighth_tags = combine_tags(
-        build_tags(
-            product_name=product_name,
-            thc=thc,
-            coa_filename=coa_filename,
-            coa_lot=coa_lot,
-        ),
+        build_tags(product_name, thc, coa_filename, coa_lot),
         promo_tag("eighth", tier_key),
     )
     quarter_tags = promo_tag("quarter", tier_key)
+    eighth_supply = tier["eighth_supply_price"]
+    quarter_supply = tier["quarter_supply_price"]
+    ounce_supply = f"{Decimal(quarter_supply) * 4:.2f}"
 
     rows: List[Dict[str, str]] = []
-
-    # 1) Base source row.
-    # This is the inventory-tracked source item.
-    # Sellable composite rows below consume this item in 1, 2, or 8 eighth-unit quantities.
-    row = blank_row(fieldnames)
-    row.update({
-        "id": "",
-        "handle": handles["base"],
-        "sku": skus["base"],
-        "composite_name": "",
-        "composite_sku": "",
-        "composite_quantity": "",
-        "name": base_name,
-        "description": description,
-        "product_category": eighth_category,
-        "tags": "",
-        "supply_price": eighth_supply_price,
-        "retail_price": eighth_price,
-        "brand_name": "Various",
-        "supplier_name": "",
-        "supplier_code": "",
-        "active": "1",
-        "track_inventory": "1",
-        "outlet_tax_Main_Outlet": DEFAULT_TAX,
-        "inventory_Main_Outlet": "",
-        "reorder_point_Main_Outlet": "",
-        "restock_level_Main_Outlet": "",
-    })
-    rows.append(row)
-
-    # 2) Sellable 1/8 row.
-    row = blank_row(fieldnames)
-    row.update({
-        "id": "",
-        "handle": handles["eighth"],
-        "sku": skus["eighth"],
-        "composite_name": "",
-        "composite_sku": "",
-        "composite_quantity": "",
-        "name": eighth_name,
-        "description": description,
-        "product_category": eighth_category,
-        "tags": eighth_tags,
-        "supply_price": eighth_supply_price,
-        "retail_price": eighth_price,
-        "brand_name": "Various",
-        "supplier_name": "",
-        "supplier_code": "",
-        "active": "1",
-        "track_inventory": "0",
-        "outlet_tax_Main_Outlet": DEFAULT_TAX,
-        "inventory_Main_Outlet": "",
-        "reorder_point_Main_Outlet": "",
-        "restock_level_Main_Outlet": "",
-    })
-    rows.append(row)
-
-    # 3) 1/8 component row.
-    # One sellable 1/8 consumes one base 1/8 inventory unit.
-    row = blank_row(fieldnames)
-    row.update({
-        "id": "",
-        "handle": "",
-        "sku": skus["eighth"],
-        "composite_name": base_name,
-        "composite_sku": skus["base"],
-        "composite_quantity": "1",
-        "name": eighth_name,
-    })
-    rows.append(row)
-
-    # 4) Sellable quarter row.
-    row = blank_row(fieldnames)
-    row.update({
-        "id": "",
-        "handle": handles["quarter"],
-        "sku": skus["quarter"],
-        "composite_name": "",
-        "composite_sku": "",
-        "composite_quantity": "",
-        "name": quarter_name,
-        "description": description,
-        "product_category": quarter_category,
-        "tags": quarter_tags,
-        "supply_price": quarter_supply_price,
-        "retail_price": quarter_price,
-        "brand_name": "Various",
-        "supplier_name": "",
-        "supplier_code": "",
-        "active": "1",
-        "track_inventory": "0",
-        "outlet_tax_Main_Outlet": DEFAULT_TAX,
-        "inventory_Main_Outlet": "",
-        "reorder_point_Main_Outlet": "",
-        "restock_level_Main_Outlet": "",
-    })
-    rows.append(row)
-
-    # 5) Quarter component row.
-    # One sellable 1/4 consumes two base 1/8 inventory units.
-    row = blank_row(fieldnames)
-    row.update({
-        "id": "",
-        "handle": "",
-        "sku": skus["quarter"],
-        "composite_name": base_name,
-        "composite_sku": skus["base"],
-        "composite_quantity": "2",
-        "name": quarter_name,
-    })
-    rows.append(row)
-
-    # 6) Sellable ounce row.
-    row = blank_row(fieldnames)
-    row.update({
-        "id": "",
-        "handle": handles["ounce"],
-        "sku": skus["ounce"],
-        "composite_name": "",
-        "composite_sku": "",
-        "composite_quantity": "",
-        "name": ounce_name,
-        "description": description,
-        "product_category": ounce_category,
-        "tags": "",
-        "supply_price": ounce_supply_price,
-        "retail_price": ounce_price,
-        "brand_name": "Various",
-        "supplier_name": "",
-        "supplier_code": "",
-        "active": "1",
-        "track_inventory": "0",
-        "outlet_tax_Main_Outlet": DEFAULT_TAX,
-        "inventory_Main_Outlet": "",
-        "reorder_point_Main_Outlet": "",
-        "restock_level_Main_Outlet": "",
-    })
-    rows.append(row)
-
-    # 7) Ounce component row.
-    # One sellable ounce consumes eight base 1/8 inventory units.
-    row = blank_row(fieldnames)
-    row.update({
-        "id": "",
-        "handle": "",
-        "sku": skus["ounce"],
-        "composite_name": base_name,
-        "composite_sku": skus["base"],
-        "composite_quantity": "8",
-        "name": ounce_name,
-    })
-    rows.append(row)
-
+    products = (
+        # key, display name, category, cost, price, tags, base quantity
+        ("base", base_name, "Eighth", eighth_supply,
+         tier["eighth_price"], "", ""),
+        ("eighth", f"{product_name} (1/8 oz)", "Eighth", eighth_supply,
+         tier["eighth_price"], eighth_tags, "1"),
+        ("quarter", f"{product_name} (1/4 oz)", "Quarter", quarter_supply,
+         tier["quarter_price"], quarter_tags, "2"),
+        ("ounce", f"{product_name} (1 oz)", "Ounce", ounce_supply,
+         tier["ounce_price"], "", "8"),
+    )
+    for key, name, category, cost, price, tags, component_qty in products:
+        row = blank_row(fieldnames)
+        row.update({
+            "id": "",
+            "handle": handles[key],
+            "sku": skus[key],
+            "composite_name": base_name if component_qty else "",
+            "composite_sku": skus["base"] if component_qty else "",
+            "composite_quantity": component_qty,
+            "name": name,
+            "description": description,
+            "product_category": f"Flower / {category} / {tier_display}",
+            "tags": tags,
+            "supply_price": cost,
+            "retail_price": price,
+            "brand_name": "Various",
+            "supplier_name": "",
+            "supplier_code": "",
+            "active": "1",
+            "track_inventory": "1" if key == "base" else "0",
+            "outlet_tax_Main_Outlet": DEFAULT_TAX,
+        })
+        # Include a tax setting for Market Square, if available in source.
+        if "outlet_tax_Market_Square" in fieldnames:
+            row["outlet_tax_Market_Square"] = DEFAULT_TAX
+        rows.append(row)
     return rows
 
 
@@ -543,7 +412,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-csv",
-        help="Optional output CSV path. If omitted, source CSV is overwritten.",
+        help="Output CSV path. If omitted, writes a new file beside the source.",
     )
     return parser.parse_args()
 
@@ -552,8 +421,8 @@ def main() -> None:
     args = parse_args()
 
     source_csv = Path(args.source_csv)
-    output_csv = Path(args.output_csv) if args.output_csv else source_csv
-
+    output_csv = Path(args.output_csv) if args.output_csv else source_csv.with_name(source_csv.stem + "-new-products.csv")
+    
     rows, fieldnames = read_csv(source_csv)
     ensure_required_columns(fieldnames)
 
@@ -584,7 +453,7 @@ def main() -> None:
 
     rows.extend(new_rows)
     write_csv(output_csv, rows, fieldnames)
-
+    
     print("Added product rows successfully.")
     print(f"Product: {product_name}")
     print(f"Tier: {tier_key}")
@@ -592,7 +461,7 @@ def main() -> None:
     print(f"COA file: {coa_filename}")
     print(f"COA lot: {coa_lot if coa_lot else '(auto from filename if possible)'}")
     print(f"Rows added: {len(new_rows)}")
-    print(f"Inventory columns removed from output: {', '.join(sorted(INVENTORY_COLUMNS))}")
+    print("Inventory quantities/thresholds excluded; track_inventory preserved.")
     print(f"Output CSV: {output_csv}")
 
 
